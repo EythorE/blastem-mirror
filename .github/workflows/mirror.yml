@@ -1,0 +1,65 @@
+name: Mirror upstream
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mirror infrastructure
+        uses: actions/checkout@v4
+        with:
+          path: mirror
+
+      - name: Install Mercurial
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mercurial
+
+      - name: Get hg-fast-export
+        run: git clone --depth 1 https://github.com/frej/fast-export.git fast-export
+
+      - name: Clone upstream Mercurial repo
+        run: hg clone https://www.retrodev.com/repos/blastem blastem-hg
+
+      - name: Convert Mercurial history to Git
+        run: |
+          mkdir blastem-git
+          cd blastem-git
+          git init
+          git config user.email "mirror-bot@users.noreply.github.com"
+          git config user.name "blastem mirror bot"
+          ../fast-export/hg-fast-export.sh -r ../blastem-hg --force
+          # hg's "default" branch becomes git's "master" — rename to main.
+          git checkout master
+          git branch -m master main
+
+      - name: Re-apply mirror infrastructure on top
+        run: |
+          cp -r mirror/.github blastem-git/
+          cd blastem-git
+          git add .github
+          # Only commit if something changed (workflows might already match a prior run)
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: re-apply mirror workflows"
+          fi
+
+      - name: Push to mirror
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd blastem-git
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          git push -f origin main
+          # Push converted hg tags too (won't trigger build.yml because they don't start with v*)
+          git push -f origin --tags || true
