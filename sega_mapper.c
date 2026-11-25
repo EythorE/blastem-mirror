@@ -441,17 +441,14 @@ void *s32x_write_bank_reg_b(uint32_t address, void *vcontext, uint8_t value)
 uint16_t med_reg_read_w(uint32_t address, void *vcontext)
 {
 	m68k_context *context = vcontext;
+	system_header *system = context->system;
 	switch (address & 0xFE)
 	{
 	case 0xE4:
 		//ensure USB serial read returns "not-ready" status
 		return 0x02;
 	default:
-#ifdef NEW_CORE
-		return context->prefetch;
-#else
-		return read_word(context->last_prefetch_address, (void **)context->mem_pointers, &context->opts->gen, context);
-#endif
+		return system->get_open_bus_value(system);
 	}
 }
 

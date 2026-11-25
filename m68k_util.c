@@ -277,8 +277,11 @@ void m68k_reset(m68k_context *context)
 	
 	context->scratch1 = context->pc;
 	m68k_read_16(context);
-	context->prefetch = context->scratch1;
-	context->pc += 2;
+	context->ir = context->scratch1;
+	context->scratch1 = context->pc + 2;
+	m68k_read_16(context);
+	context->irc = context->scratch1;
+	context->pc += 4;
 	
 	context->status = 0x27;
 }
@@ -321,10 +324,11 @@ void m68k_serialize(m68k_context *context, uint32_t pc, serialize_buffer *buf)
 	save_int8(buf, context->int_pending);
 	save_int8(buf, context->trace_pending);
 	//remaining fields have no equivalent in old core
-	save_int16(buf, context->prefetch);
+	save_int16(buf, context->ir);
 	save_int8(buf, context->stopped);
 	save_int8(buf, context->int_num);
 	save_int8(buf, context->int_pending_num);
+	save_int16(buf, context->irc);
 }
 
 void m68k_deserialize(deserialize_buffer *buf, void *vcontext)
@@ -353,25 +357,34 @@ void m68k_deserialize(deserialize_buffer *buf, void *vcontext)
 	context->int_pending = load_int8(buf);
 	context->trace_pending = load_int8(buf);
 	if (buf->cur_pos < buf->size) {
-		context->prefetch = load_int16(buf);
+		context->ir = load_int16(buf);
 		context->stopped = load_int8(buf);
 		context->int_num = load_int8(buf);
 		context->int_pending_num = load_int8(buf);
+		if (buf->cur_pos < buf->size) {
+			context->irc = load_int16(buf);
+		} else {
+			context->irc = context->irc = read_word(context->pc + 2, (void**)context->mem_pointers, &context->opts->gen, context);
+		}
 	} else {
-		context->prefetch = read_word(context->pc, (void**)context->mem_pointers, &context->opts->gen, context);
+		context->ir = read_word(context->pc, (void**)context->mem_pointers, &context->opts->gen, context);
+		context->irc = read_word(context->pc + 2, (void**)context->mem_pointers, &context->opts->gen, context);
 		context->stopped = 0;
 		context->int_num = context->int_pending_num = 0;
 	}
 	//adjust for compatibility with old core
-	context->pc += 2;
+	context->pc += 4;
 }
 
 void start_68k_context(m68k_context *context, uint32_t pc)
 {
-	context->scratch1 = context->pc = pc;
+	context->scratch1 = pc;
 	m68k_read_16(context);
-	context->prefetch = context->scratch1;
-	context->pc += 2;
+	context->ir = context->scratch1;
+	context->scratch1 = pc + 2;
+	m68k_read_16(context);
+	context->irc = context->scratch1;
+	context->pc = pc + 4;
 }
 
 void insert_breakpoint(m68k_context *context, uint32_t address, debug_handler handler)

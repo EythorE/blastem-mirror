@@ -320,7 +320,7 @@ uint16_t read_dma_value(uint32_t address)
 		if (address >= word_ram && address < word_ram_end) {
 			if (!cd->has_vdp_dma_value) {
 #ifdef NEW_CORE
-				cd->vdp_dma_value = genesis->m68k->prefetch;
+				cd->vdp_dma_value = genesis->m68k->irc;
 #else
 				cd->vdp_dma_value = read_word(genesis->m68k->last_prefetch_address, (void **)genesis->m68k->mem_pointers, &genesis->m68k->opts->gen, genesis->m68k);
 #endif
@@ -349,7 +349,7 @@ static uint16_t get_open_bus_value(system_header *system)
 {
 	genesis_context *genesis = (genesis_context *)system;
 #ifdef NEW_CORE
-	return genesis->m68k->prefetch;
+	return genesis->m68k->irc;
 #else
 	return read_word(genesis->m68k->last_prefetch_address, (void **)genesis->m68k->mem_pointers, &genesis->m68k->opts->gen, genesis->m68k);
 #endif

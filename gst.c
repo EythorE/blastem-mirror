@@ -89,7 +89,7 @@ uint32_t m68k_load_gst(m68k_context * context, FILE * gstfile)
 	uint16_t sr = read_le_16(buffer + GST_68K_SR_OFFSET);
 	context->status = sr >> 8;
 #ifdef NEW_CORE
-	context->pc = pc + 2;
+	context->pc = pc + 4;
 	context->xflag = sr & 0x10;
 	context->nflag = sr & 0x08;
 	context->zflag = sr & 0x04;
@@ -100,11 +100,11 @@ uint32_t m68k_load_gst(m68k_context * context, FILE * gstfile)
 	} else {
 		context->other_sp = read_le_32(buffer + GST_68K_SSP_OFFSET);
 	}
-	context->prefetch = read_word(pc, (void**)context->mem_pointers, &context->opts->gen, context);
+	context->ir = read_word(pc, (void**)context->mem_pointers, &context->opts->gen, context);
+	context->irc = read_word(pc + 2, (void**)context->mem_pointers, &context->opts->gen, context);
 	context->stopped = 0;
 	context->int_priority = context->int_num = context->int_pending_num = 0;
 	context->int_pending = 255;
-	printf("m68k_load_gst pc: %X, prefetch: %X\n", context->pc, context->prefetch);
 #else
 	for (int flag = 4; flag >= 0; flag--) {
 		context->flags[flag] = sr & 1;

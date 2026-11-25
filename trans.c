@@ -79,7 +79,7 @@ int main(int argc, char ** argv)
 	context->mem_pointers[0] = memmap[0].buffer;
 	context->mem_pointers[1] = memmap[1].buffer;
 #ifdef NEW_CORE
-	context->cycles = 20;
+	context->cycles = 16;
 #else
 	context->cycles = 40;
 	context->target_cycle = context->sync_cycle = 8000;

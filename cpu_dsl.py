@@ -1788,7 +1788,7 @@ class Switch(ChildBlock):
 			raise ion('Orphan instruction in switch')
 		elif op.op == 'local':
 			name = op.params[0]
-			size = op.params[1]
+			size = int(op.params[1])
 			self.current_locals[name] = size
 		else:
 			self.current_case.append(op)
@@ -1822,7 +1822,7 @@ class Switch(ChildBlock):
 				self.current_locals = self.default_locals
 				output.append('\n\t{')
 				for local in self.default_locals:
-					output.append('\n\tuint{0}_t {1};'.format(self.default[local], local))
+					output.append('\n\tuint{0}_t {1};'.format(self.default_locals[local], local))
 				self.processOps(prog, fieldVals, output, otype, self.default)
 				output.append('\n\t}')
 		else:
